@@ -155,6 +155,7 @@ output "app_id" {
 }
 
 # Diagnostic Settings to store AKS metrics in Log Analytics
+/*
 resource "azurerm_monitor_diagnostic_setting" "aksdiag" {
   name                           = "eshop-aks-eus-diag-setting"
   target_resource_id             = azurerm_kubernetes_cluster.eshopakscluster.id
@@ -208,3 +209,4 @@ resource "azurerm_monitor_diagnostic_setting" "aksdiag" {
     }
   }
 }
+*/
