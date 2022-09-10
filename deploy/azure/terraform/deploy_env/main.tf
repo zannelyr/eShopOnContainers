@@ -179,14 +179,6 @@ resource "azurerm_monitor_diagnostic_setting" "aksdiag" {
     }
   }
 
-  log {
-    category = "kube-apiserver"
-    enabled  = true
-    retention_policy {
-      enabled = false
-    }
-  }
-
   metric {
     category = "AllMetrics"
     enabled  = true
