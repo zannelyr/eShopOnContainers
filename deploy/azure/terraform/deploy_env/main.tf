@@ -133,6 +133,27 @@ resource "azurerm_kubernetes_cluster" "eshopakscluster" {
       log_analytics_workspace_id = azurerm_log_analytics_workspace.laworkspace.id
     }
 }
+# Outputs
+output "client_certificate" {
+  value     = azurerm_kubernetes_cluster.eshopakscluster.kube_config.0.client_certificate
+  sensitive = true
+}
+
+output "kube_config" {
+  value     = azurerm_kubernetes_cluster.eshopakscluster.kube_config_raw
+  sensitive = true
+}
+
+output "instrumentation_key" {
+  value = azurerm_application_insights.appinsights.instrumentation_key
+  sensitive = true
+}
+
+output "app_id" {
+  value = azurerm_application_insights.appinsights.app_id
+  sensitive = true
+}
+
 # Diagnostic Settings to store AKS metrics in Log Analytics
 resource "azurerm_monitor_diagnostic_setting" "aksdiag" {
   name                           = "eshop-aks-eus-diag-setting"
@@ -186,24 +207,4 @@ resource "azurerm_monitor_diagnostic_setting" "aksdiag" {
       enabled = false
     }
   }
-}
-# Outputs
-output "client_certificate" {
-  value     = azurerm_kubernetes_cluster.eshopakscluster.kube_config.0.client_certificate
-  sensitive = true
-}
-
-output "kube_config" {
-  value     = azurerm_kubernetes_cluster.eshopakscluster.kube_config_raw
-  sensitive = true
-}
-
-output "instrumentation_key" {
-  value = azurerm_application_insights.appinsights.instrumentation_key
-  sensitive = true
-}
-
-output "app_id" {
-  value = azurerm_application_insights.appinsights.app_id
-  sensitive = true
 }
