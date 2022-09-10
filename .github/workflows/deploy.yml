@@ -1,0 +1,101 @@
+# This workflow will build a docker container, publish it to Azure Container Registry, and deploy it to Azure Kubernetes Service using a helm chart.
+#
+# To configure this workflow:
+#
+# 1. Set up the following secrets in your workspace: 
+#     a. USERNAME with ACR username
+#     b. PASSWORD with ACR Password
+#     c. AZURE_CREDENTIALS with the output of `az ad sp create-for-rbac --sdk-auth`
+#     d. REGISTRY_NAME with the first part of your ACR registry address <REGISTRY_NAME>.azurecr.io
+#     e. CLUSTER_NAME with the name of the AKS cluster
+#     f. RESOURCE_GROUP with the name of the AKS resource group
+#     g. APPINSIGHTS_KEY with your Application Insights instrumentation key 
+#
+# 
+name: Application Deploy
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      deployInfra: 
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'Would you like to deploy the infrastructure? ($true or $false) Only use this option if you have separate infrastrucure, this will still destroy infra containers if they exist.'
+        # Default value if no value is explicitly provided
+        default: '$true'
+        # Input has to be provided for the workflow to run
+        required: false
+defaults:
+  run:
+    working-directory: deploy
+
+# Environment variables available to all jobs and steps in this workflow
+env:
+  REGISTRY_NAME: ${{ secrets.REGISTRY_NAME }}
+  CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+  CLUSTER_RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
+  ACR_USERNAME: ${{ secrets.USERNAME }}
+  ACR_PASSWORD: ${{ secrets.PASSWORD }}
+  DEPLOY_INFRA: ${{ github.event.inputs.deployInfra }}
+  APPINSIGHTS_KEY: ${{ secrets.APPINSIGHTS_INSTRUMENTATION }}
+
+jobs:
+
+  release:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Login via Az module
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+        enable-AzPSSession: true 
+        
+    - name: Run Deployment PowerShell script
+      uses: azure/powershell@v1
+      with:
+        inlineScript: |          
+          # Get AKS credentials for kubectl
+          az aks get-credentials --resource-group $Env:CLUSTER_RESOURCE_GROUP --name $Env:CLUSTER_NAME 
+                    
+          # Set container registry url 
+          $containerRegestry = $Env:REGISTRY_NAME + '.azurecr.io'
+
+          cd $Env:GITHUB_WORKSPACE/deploy/k8s/nginx-ingress
+         
+          # K8S Configuration Updates
+          kubectl apply -f mandatory.yaml
+          kubectl apply -f local-cm.yaml
+          kubectl apply -f local-svc.yaml
+
+          # Login fix to enable large headers
+          cd $Env:GITHUB_WORKSPACE/deploy/k8s/helm
+          kubectl apply -f aks-httpaddon-cfg.yaml
+          kubectl delete pod $(kubectl get pod -l app=addon-http-application-routing-nginx-ingress -n kube-system -o jsonpath="{.items[0].metadata.name}") -n kube-system
+
+          # If DEPLOY_INFRA is true remove all services and infrastructure then deploy all services and infrastructure 
+          if($Env:DEPLOY_INFRA -eq '$true')
+          {
+          . $Env:GITHUB_WORKSPACE/deploy/k8s/helm/deploy-all.ps1 -externalDns aks -aksName $Env:CLUSTER_NAME -aksRg $Env:CLUSTER_RESOURCE_GROUP -imageTag linux-dev -registry $containerRegestry -dockerUser $Env:ACR_USERNAME -dockerPassword $Env:ACR_PASSWORD -useMesh $false              
+          }
+          
+          # If DEPLOY_INFRA is false remove all infrastructure and services, and deploy services
+          if($Env:DEPLOY_INFRA -eq '$false')
+          {
+          . $Env:GITHUB_WORKSPACE/deploy/k8s/helm/deploy-all.ps1 -externalDns aks -aksName $Env:CLUSTER_NAME -aksRg $Env:CLUSTER_RESOURCE_GROUP -imageTag linux-dev -registry $containerRegestry -dockerUser $Env:ACR_USERNAME -dockerPassword $Env:ACR_PASSWORD -deployInfrastructure $false -useMesh $false
+          }
+          
+          # Show deployment status
+          kubectl get deployment
+          
+          # Display webMVC and webSPA URLs 
+          kubectl get ingresses -o jsonpath='{.spec.rules[*].host}{.spec.rules[*].http.paths[*].path}' eshop-webspa 
+          echo "`n"
+          kubectl get ingresses -o jsonpath='{.spec.rules[*].host}{.spec.rules[*].http.paths[*].path}' eshop-webmvc 
+          
+          # Add the Application Insights instrumentation key to all deployment as an environment variable
+          echo "Adding Application Insights Instrumentation Key `n"
+          kubectl set env deployments --all ApplicationInsights__InstrumentationKey=$Env:APPINSIGHTS_KEY
+        azPSVersion: '3.1.0'
