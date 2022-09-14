@@ -58,6 +58,7 @@
     "tslib": "^2.0.0",
     "typedoc": "0.22.11",
     "webpack-dev-server": "4.7.4",
+    "@microsoft/applicationinsights-web": "~2.4.4",
     "zone.js": "~0.10.2"
   },
   "devDependencies": {
