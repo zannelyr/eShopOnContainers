@@ -1,4 +1,4 @@
-resourceRegion="eastus2"
+resourceRegion="eastus"
 
 # SLOs as Code Example 
 SLOs = {
