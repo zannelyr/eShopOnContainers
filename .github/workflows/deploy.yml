@@ -98,4 +98,6 @@ jobs:
           # Add the Application Insights instrumentation key to all deployment as an environment variable
           echo "Adding Application Insights Instrumentation Key `n"
           kubectl set env deployments --all ApplicationInsights__InstrumentationKey=$Env:APPINSIGHTS_KEY
+          kubectl set env deployments --all APPINSIGHTS_KEY=$Env:APPINSIGHTS_KEY
+          kubectl set env deployments --all ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=Microsoft.ApplicationInsights.Profiler.AspNetCore
         azPSVersion: '3.1.0'

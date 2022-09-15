@@ -49,6 +49,7 @@ RUN dotnet restore "eShopOnContainers-ServicesAndWebApps.sln"
 
 COPY . .
 WORKDIR /src/Services/Catalog/Catalog.API
+RUN dotnet add package Microsoft.ApplicationInsights.Profiler.AspNetCore -v 2.3.0-beta3
 RUN dotnet publish --no-restore -c Release -o /app
 
 FROM build as unittest
@@ -64,4 +65,6 @@ WORKDIR /app
 COPY --from=publish /app .
 COPY --from=build /src/Services/Catalog/Catalog.API/Proto /app/Proto
 COPY --from=build /src/Services/Catalog/Catalog.API/eshop.pfx .
+RUN mkdir /bin/ServiceProfiler
+RUN cp /app/TraceUpload.zip /bin/ServiceProfiler
 ENTRYPOINT ["dotnet", "Catalog.API.dll"]

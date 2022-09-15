@@ -25,6 +25,7 @@ public class CatalogController : ControllerBase
     [ProducesResponseType((int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ItemsAsync([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, string ids = null)
     {
+        System.Threading.Thread.Sleep((new Random()).Next(500, 2000));
         if (!string.IsNullOrEmpty(ids))
         {
             var items = await GetItemsByIdsAsync(ids);
