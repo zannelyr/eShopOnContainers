@@ -49,7 +49,7 @@ RUN dotnet restore "eShopOnContainers-ServicesAndWebApps.sln"
 
 COPY . .
 WORKDIR /src/Services/Catalog/Catalog.API
-RUN dotnet add package Microsoft.ApplicationInsights.Profiler.AspNetCore -v 2.3.0-beta3
+RUN dotnet add package Microsoft.ApplicationInsights.Profiler.AspNetCore
 RUN dotnet publish --no-restore -c Release -o /app
 
 FROM build as unittest
